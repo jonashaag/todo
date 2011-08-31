@@ -1,0 +1,129 @@
+<!doctype html>
+<style>
+  html, body { height: 100%; margin: 0; padding: 0; }
+  * { font-family: Georgia, serif; }
+  input[type=text] { border: 1px solid #aaa; }
+  label { cursor: pointer; }
+  #container { height: 95%; }
+  #add-list { position: fixed; bottom: 5px; right: 5px; }
+  .list {
+    margin: 10px;
+    float: left;
+    width: 285px;
+    padding: 10px;
+    margin-left: 0;
+  }
+  .list + .list { border-left: 1px solid #ccc; }
+  .list > label {
+    display: block;
+    text-align: center;
+    font-size: 32px;
+  }
+  .list input[type=text] {
+    display: block;
+    font-size: 20px;
+    margin-top: 10px;
+    width: 100%;
+    padding: 3px;
+  }
+  .list ul { font-size: 20px; list-style-type: none; padding-left: 0; }
+  .list li { margin-bottom: 5px; }
+  .list li label { margin-left: 5px; }
+  .list li input:checked + label { text-decoration: line-through; color: #ccc; }
+  .list li.first-done { margin-top: 10px; }
+</style>
+<script>
+var make_element = function(type, attrs) {
+  var elem = document.createElement(type);
+  if(attrs) {
+    if(attrs['class']) {
+      elem.className = attrs['class'];
+      delete attrs['class'];
+    }
+    if(attrs['text']) {
+      elem.appendChild(document.createTextNode(attrs['text']));
+      delete attrs['text'];
+    }
+    for(var key in attrs){
+      elem.setAttribute(key, attrs[key]);
+    }
+  }
+  return elem;
+};
+
+var db = JSON.parse(localStorage.todo_db || '{}');
+var container;
+var counter = 0;
+
+var save_db = function() { localStorage.todo_db = JSON.stringify(db); }
+
+var setup = function(focus_list) {
+  container = document.getElementById('container')
+  for(var listname in db) {
+    var todo = [];
+    var done = [];
+    for(var i=0, len=db[listname].length; i<len; i++) {
+      var item = db[listname][i];
+      (item.done ? done : todo).push(item);
+    }
+    db[listname] = todo.concat(done);
+    make_list(listname)
+  }
+  document.getElementById('add-list').onkeyup = function(event) {
+    if(event.keyCode != 13) return;
+    if(this.value in db) {
+      alert("Duplicate name");
+      return;
+    }
+    db[this.value] = [];
+    make_list(this.value);
+    this.value = '';
+    save_db();
+  }
+}
+
+var make_list = function(name) {
+  counter++;
+  var div = make_element('div', {'class': 'list'})
+  var label = make_element('label', {text: name, 'for': 'input'+counter});
+  var input = make_element('input', {id: 'input'+counter, placeholder: "Add item...", type: 'text'});
+  input.onkeyup = function(event) {
+    if(event.keyCode != 13) return;
+    db[name].splice(0, 0, {title: this.value});
+    this.parentNode.replaceChild(make_ul(name), this.nextSibling);
+    this.value = '';
+    save_db();
+  }
+  div.appendChild(label);
+  div.appendChild(input);
+  div.appendChild(make_ul(name));
+  container.appendChild(div);
+}
+
+var make_ul = function(listname) {
+  var ul = make_element('ul');
+  var saw_done = false;
+  db[listname].forEach(function(entry) {
+    counter++;
+    var li = make_element('li');
+    var checkbox = make_element('input', {type: 'checkbox', id: 'input'+counter});
+    if(entry.done) {
+      checkbox.checked = true;
+      if(!saw_done) {
+        console.log('foo')
+        li.className = 'first-done';
+        saw_done = true;
+      }
+    }
+    checkbox.onchange = function() { entry.done = this.checked; save_db(); }
+    li.appendChild(checkbox);
+    li.appendChild(make_element('label', {text: entry.title, 'for': 'input'+counter}));
+    ul.appendChild(li);
+  });
+  return ul;
+}
+
+</script>
+<input id=add-list placeholder="Add list...">
+<div id=container></div>
+<script>setup()</script>
