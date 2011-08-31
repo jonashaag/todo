@@ -30,7 +30,7 @@
   .list li { margin-bottom: 5px; }
   .list li label { margin-left: 5px; }
   .list li input:checked + label { text-decoration: line-through; color: #ccc; }
-  .list li.first-done { margin-top: 10px; }
+  .list li.first-done { margin-top: 15px; }
 </style>
 <script>
 var make_element = function(type, attrs) {
@@ -89,7 +89,11 @@ var make_list = function(name) {
   var input = make_element('input', {id: 'input'+counter, placeholder: "Add item...", type: 'text'});
   input.onkeyup = function(event) {
     if(event.keyCode != 13) return;
-    db[name].splice(0, 0, {title: this.value});
+    if(!this.value) return;
+    if(event.ctrlKey || event.shiftKey)
+      db[name].push({title: this.value});
+    else
+      db[name].splice(0, 0, {title: this.value});
     this.parentNode.replaceChild(make_ul(name), this.nextSibling);
     this.value = '';
     save_db();
@@ -110,7 +114,6 @@ var make_ul = function(listname) {
     if(entry.done) {
       checkbox.checked = true;
       if(!saw_done) {
-        console.log('foo')
         li.className = 'first-done';
         saw_done = true;
       }
