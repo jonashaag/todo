@@ -12,6 +12,7 @@
     width: 285px;
     padding: 10px;
     margin-left: 0;
+    height: 100%;
   }
   .list + .list { border-left: 1px solid #ccc; }
   .list > label {
@@ -90,10 +91,16 @@ var make_list = function(name) {
   input.onkeyup = function(event) {
     if(event.keyCode != 13) return;
     if(!this.value) return;
-    if(event.ctrlKey || event.shiftKey)
-      db[name].push({title: this.value});
-    else
-      db[name].splice(0, 0, {title: this.value});
+    var insertAt = db[name].length;
+    if(event.ctrlKey || event.shiftKey) {
+      for(var i=0; i<insertAt; i++) {
+        if(db[name][i].done) {
+          insertAt = i;
+          break;
+        }
+      }
+      }
+    db[name].splice(insertAt, 0, {title: this.value});
     this.parentNode.replaceChild(make_ul(name), this.nextSibling);
     this.value = '';
     save_db();
