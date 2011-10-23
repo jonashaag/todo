@@ -13,6 +13,7 @@
     padding: 10px;
     margin-left: 0;
     height: 100%;
+    overflow: hidden;
   }
   .list + .list { border-left: 1px solid #ccc; }
   .list > label {
@@ -91,15 +92,17 @@ var make_list = function(name) {
   input.onkeyup = function(event) {
     if(event.keyCode != 13) return;
     if(!this.value) return;
-    var insertAt = db[name].length;
     if(event.ctrlKey || event.shiftKey) {
+      var insertAt = db[name].length;
       for(var i=0; i<insertAt; i++) {
         if(db[name][i].done) {
           insertAt = i;
           break;
         }
       }
-      }
+    } else {
+      var insertAt = 0;
+    }
     db[name].splice(insertAt, 0, {title: this.value});
     this.parentNode.replaceChild(make_ul(name), this.nextSibling);
     this.value = '';
@@ -108,6 +111,10 @@ var make_list = function(name) {
   div.appendChild(label);
   div.appendChild(input);
   div.appendChild(make_ul(name));
+  div.onmousewheel = function(event) {
+    this.scrollTop = this.scrollTop - event.wheelDelta;
+    return false;
+  }
   container.appendChild(div);
 }
 
