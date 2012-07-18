@@ -30,8 +30,17 @@
   }
   .list ul { font-size: 20px; list-style-type: none; padding-left: 0; }
   .list li { margin-bottom: 5px; }
-  .list li label { margin-left: 5px; }
-  .list li input:checked + label { text-decoration: line-through; color: #ccc; }
+  .list li label { margin-left: 10px; }
+  .list li input:checked + .arrow + .arrow + label { text-decoration: line-through; color: #ccc; }
+
+  .list li .arrow { cursor: pointer; position: relative; display: none; }
+  .list li .arrow:hover { font-weight: bold;}
+  .list li .uparrow { top: -2px; }
+  .list li .downarrow { top: 3px; }
+  .list li:hover .arrow { display: inline; }
+  .list li input:checked + .arrow,
+  .list li input:checked + .arrow + .arrow { display: none !important; }
+
   .list li.first-done { margin-top: 15px; }
 </style>
 <script>
@@ -74,7 +83,7 @@ var setup = function(focus_list) {
   document.getElementById('add-list').onkeyup = function(event) {
     if(event.keyCode != 13) return;
     if(this.value in db) {
-      alert("Duplicate name");
+      alert("Duplicate list name");
       return;
     }
     db[this.value] = [];
@@ -133,10 +142,39 @@ var make_ul = function(listname) {
       }
     }
     checkbox.onchange = function() { entry.done = this.checked; save_db(); }
+
+    var moveItem = function(direction) {
+      var neighbor = li[(direction == 1 ? 'nextSibling' : 'previousSibling')];
+      if (neighbor) {
+        var pos = Array.prototype.indexOf.call(li.parentNode.childNodes, li);
+
+        // swap db elements
+        var tmp = db[listname][pos+direction];
+        db[listname][pos+direction] = db[listname][pos];
+        db[listname][pos] = tmp;
+        save_db();
+
+        // swap DOM elements
+        if (direction == 1) {
+          li.parentNode.insertBefore(neighbor, li);
+        } else {
+          li.parentNode.insertBefore(li, neighbor);
+        }
+      }
+    };
+    var moveDown = make_element('span', {text: '☟', 'class': 'arrow downarrow'});
+    var moveUp   = make_element('span', {text: '☝', 'class': 'arrow uparrow'});
+    moveUp.addEventListener('click', function() { moveItem(-1); });
+    moveDown.addEventListener('click', function() { moveItem(1); });
+
     li.appendChild(checkbox);
+    li.appendChild(moveUp);
+    li.appendChild(moveDown);
     li.appendChild(make_element('label', {text: entry.title, 'for': 'input'+counter}));
+
     ul.appendChild(li);
   });
+
   return ul;
 }
 
