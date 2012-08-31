@@ -7,40 +7,42 @@
   label { cursor: pointer; }
   #container { height: 95%; }
   #add-list { position: fixed; bottom: 5px; right: 5px; }
-  .list {
-    margin: 10px;
+
+  /* The <div>s containing <label>, <input> and <ul> */
+  div.list {
     float: left;
     width: 285px;
-    padding: 10px;
-    margin-left: 0;
     height: 100%;
     overflow: hidden;
+    margin: 10px;
+    margin-left: 0;
+    padding: 10px;
   }
-  .list + .list { border-left: 1px solid #ccc; }
-  .list > label {
+  div.list + .list { border-left: 1px solid #ccc; }
+  div.list > label {
     display: block;
     text-align: center;
     font-size: 32px;
   }
-  .list input[type=text] {
+  div.list input[type=text] {
     display: block;
     font-size: 20px;
     margin-top: 10px;
     width: 100%;
     padding: 3px;
   }
-  .list ul { font-size: 20px; list-style-type: none; padding-left: 0; }
-  .list li { margin-bottom: 5px; }
-  .list li label { margin-left: 10px; }
-  .list li input:checked + .arrow + .arrow + label { text-decoration: line-through; color: #ccc; }
+  div.list ul { font-size: 20px; list-style-type: none; padding-left: 0; }
+  div.list li { margin-bottom: 5px; }
+  div.list li label { margin-left: 10px; }
+  div.list li input:checked + .arrow + .arrow + label { text-decoration: line-through; color: #ccc; }
 
-  .list li .arrow { cursor: pointer; position: relative; display: none; }
-  .list li .arrow:hover { font-weight: bold;}
-  .list li .uparrow { top: -2px; }
-  .list li .downarrow { top: 3px; }
-  .list li:hover .arrow { display: inline; }
-  .list li input:checked + .arrow,
-  .list li input:checked + .arrow + .arrow { display: none !important; }
+  div.list li .arrow { cursor: pointer; position: relative; display: none; }
+  div.list li .arrow:hover { font-weight: bold;}
+  div.list li .uparrow { top: -2px; }
+  div.list li .downarrow { top: 3px; }
+  div.list li:hover .arrow { display: inline; }
+  div.list li input:checked + .arrow,
+  div.list li input:checked + .arrow + .arrow { display: none !important; }
 
   .list li.first-done { margin-top: 15px; }
 </style>
@@ -63,17 +65,46 @@ var make_element = function(type, attrs) {
   return elem;
 };
 
+/*
+  Database format
+  ---------------
+  Simply a map of (list-name, array of entries) pairs where each entry
+  is a map with 'title' and 'done' keys:
+
+    exampleDB = {
+      List1: [
+        {title: Entry1},
+        {title: Entry2, done: true},
+        ...
+      ],
+      List2: ...
+    };
+*/
 var db = JSON.parse(localStorage.todo_db || '{}');
+
+/*
+  DOM structure
+  -------------
+  * container contains multiple <div>s which represent one TODO list
+  * <div>s consist of <label> (list name), <input> (text field), <ul> (list of entries)
+  * <ul> <li>s consist of checkbox, 2 <spans> (move up/down), <label> (entry name)
+  * <span>s behave like <a>s
+*/
 var container;
 var counter = 0;
 
-var save_db = function() { localStorage.todo_db = JSON.stringify(db); }
+var save_db = function() {
+  localStorage.todo_db = JSON.stringify(db);
+}
 
-var setup = function(focus_list) {
-  container = document.getElementById('container')
+/* Main entry point. Called when the HTML is DOM-ready. Sets up all the UI elements. */
+var setup = function() {
+  container = document.getElementById('container');
+
   for(var listname in db) {
-    var todo = [];
-    var done = [];
+    var todo = []; // unfinished tasks
+    var done = []; // finished tasks
+    // loop through list entries, putting finished tasks to the end of the list
     for(var i=0, len=db[listname].length; i<len; i++) {
       var item = db[listname][i];
       (item.done ? done : todo).push(item);
@@ -81,6 +112,8 @@ var setup = function(focus_list) {
     db[listname] = todo.concat(done);
     make_list(listname)
   }
+
+  // bottom-right "Add list" box
   document.getElementById('add-list').onkeyup = function(event) {
     if(event.keyCode != 13) return;
     if(this.value in db) {
@@ -94,23 +127,30 @@ var setup = function(focus_list) {
   }
 }
 
+/* Create <ul> with entries from `db[name]` and add it to the DOM */
 var make_list = function(name) {
   counter++;
-  var div = make_element('div', {'class': 'list'})
+  // wrapping div, contains <label> + <input> + <ul>
+  var div = make_element('div', {'class': 'list'});
+  // list name
   var label = make_element('label', {text: name, 'for': 'input'+counter});
+  // input for adding entries
   var input = make_element('input', {id: 'input'+counter, placeholder: "Add item...", type: 'text'});
   input.onkeyup = function(event) {
-    if(event.keyCode != 13) return;
-    if(!this.value) return;
+    if(event.keyCode != 13) return; // 13 == Return
+    if(!this.value) return; // empty
     if(event.ctrlKey || event.shiftKey) {
+      /* CTRL/Shift + Return == Insert before first finished task (== end of TODO list) */
       var insertAt = db[name].length;
       for(var i=0; i<insertAt; i++) {
         if(db[name][i].done) {
+          /* Found finished task, insert here */
           insertAt = i;
           break;
         }
       }
     } else {
+      /* No finished task found, insert at pos 0 */
       var insertAt = 0;
     }
     db[name].splice(insertAt, 0, {title: this.value});
@@ -121,13 +161,17 @@ var make_list = function(name) {
   div.appendChild(label);
   div.appendChild(input);
   div.appendChild(make_ul(name));
+
+  /* Hack to make it scrollable without scroll bars */
   div.onmousewheel = function(event) {
     this.scrollTop = this.scrollTop - event.wheelDelta;
     return false;
   }
+
   container.appendChild(div);
 }
 
+/* Create and return the <ul> that contains the list entries. */
 var make_ul = function(listname) {
   var ul = make_element('ul');
   var saw_done = false;
@@ -142,14 +186,19 @@ var make_ul = function(listname) {
         saw_done = true;
       }
     }
-    checkbox.onchange = function() { entry.done = this.checked; save_db(); }
+    /* On checkbox click: Toggle state in DB */
+    checkbox.onchange = function() {
+      entry.done = this.checked;
+      save_db();
+    }
 
+    /* Move item up or down (specified by `direction`) */
     var moveItem = function(direction) {
       var neighbor = li[(direction == 1 ? 'nextSibling' : 'previousSibling')];
       if (neighbor) {
         var pos = Array.prototype.indexOf.call(li.parentNode.childNodes, li);
 
-        // swap db elements
+        // swap DB elements
         var tmp = db[listname][pos+direction];
         db[listname][pos+direction] = db[listname][pos];
         db[listname][pos] = tmp;
@@ -178,8 +227,8 @@ var make_ul = function(listname) {
 
   return ul;
 }
-
 </script>
+
 <input id=add-list placeholder="Add list...">
 <div id=container></div>
 <script>setup()</script>
