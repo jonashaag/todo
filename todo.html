@@ -5,12 +5,14 @@
   * { font-family: Georgia, serif; }
   input[type=text] { border: 1px solid #aaa; }
   label { cursor: pointer; }
-  #container { height: 95%; }
+  #container { height: 95%; white-space: nowrap; }
   #add-list { position: fixed; bottom: 5px; right: 5px; }
 
   /* The <div>s containing <label>, <input> and <ul> */
   div.list {
-    float: left;
+    display: inline-block;
+    white-space: normal;
+    vertical-align: top;
     width: 285px;
     height: 100%;
     overflow: hidden;
