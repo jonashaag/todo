@@ -8,6 +8,9 @@
   #container { height: 95%; white-space: nowrap; }
   #add-list { position: fixed; bottom: 5px; right: 5px; }
 
+  ::-webkit-scrollbar { height: 5px; }
+  ::-webkit-scrollbar-thumb { background-color: #aaa; }
+
   /* The <div>s containing <label>, <input> and <ul> */
   div.list {
     display: inline-block;
@@ -166,8 +169,10 @@ var make_list = function(name) {
 
   /* Hack to make it scrollable without scroll bars */
   div.onmousewheel = function(event) {
-    this.scrollTop = this.scrollTop - event.wheelDelta;
-    return false;
+    if (event.wheelDeltaY) {
+      this.scrollTop = this.scrollTop - event.wheelDelta;
+      return false;
+    }
   }
 
   container.appendChild(div);
